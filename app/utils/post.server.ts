@@ -19,9 +19,9 @@ function typedBoolean<T>(
 
 async function getPosts(octokit: Octokit): Promise<Array<PostListing>> {
   const {data} = await octokit.repos.getContent({
-    owner: 'kentcdodds',
-    repo: 'remix-kentcdodds',
-    path: 'content/blog',
+    owner: process.env.BLOG_GITHUB_OWNER as string,
+    repo: process.env.BLOG_GITHUB_REPO as string,
+    path: process.env.BLOG_GITHUB_PATH as string,
   })
   if (!Array.isArray(data)) throw new Error('Wut github?')
 
@@ -31,8 +31,8 @@ async function getPosts(octokit: Octokit): Promise<Array<PostListing>> {
       .map(
         async ({path: fileDir}): Promise<PostIndexFile | null> => {
           const {data: fileData} = await octokit.repos.getContent({
-            owner: 'kentcdodds',
-            repo: 'remix-kentcdodds',
+            owner: process.env.BLOG_GITHUB_OWNER as string,
+            repo: process.env.BLOG_GITHUB_REPO as string,
             path: fileDir,
           })
           if (!Array.isArray(fileData)) throw new Error('Wut github?')
@@ -68,8 +68,8 @@ async function downloadDirectory(
   dir: string,
 ): Promise<Array<PostFile>> {
   const {data} = await octokit.repos.getContent({
-    owner: 'kentcdodds',
-    repo: 'remix-kentcdodds',
+    owner: process.env.BLOG_GITHUB_OWNER as string,
+    repo: process.env.BLOG_GITHUB_REPO as string,
     path: dir,
   })
   if (!Array.isArray(data)) throw new Error('Wut github?')
@@ -100,8 +100,8 @@ async function downloadFile(
   const {data} = await octokit.request(
     'GET /repos/{owner}/{repo}/git/blobs/{file_sha}',
     {
-      owner: 'kentcdodds',
-      repo: 'remix-kentcdodds',
+      owner: process.env.BLOG_GITHUB_OWNER as string,
+      repo: process.env.BLOG_GITHUB_REPO as string,
       file_sha: sha,
     },
   )
