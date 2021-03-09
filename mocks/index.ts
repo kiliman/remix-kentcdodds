@@ -3,8 +3,6 @@ import * as fs from 'fs/promises'
 import {rest} from 'msw'
 import {setupServer} from 'msw/node'
 
-const isDirectory = async (d: string) => (await fs.lstat(d)).isDirectory()
-
 type GHContentsDescription = {
   name: string
   path: string
@@ -63,12 +61,14 @@ const handlers = [
         dirList.map(
           async (name): Promise<GHContentsDescription> => {
             const relativePath = nodePath.join(path, name)
+            const fullPath = nodePath.join(dir, name)
+            const stat = await fs.stat(fullPath)
             // NOTE: this is a cheat-code so we don't have to determine the sha of the file
             // and our sha endpoint handler doesn't have to do a reverse-lookup.
-            const sha = relativePath
-            const fullPath = nodePath.join(dir, name)
-            const isDir = await isDirectory(fullPath)
-            const size = isDir ? 0 : (await fs.stat(fullPath)).size
+            const isDir = stat.isDirectory()
+            const mtimeMs = await calcMtime(fullPath)
+            const sha = `${relativePath}|${mtimeMs}`
+            const size = isDir ? 0 : stat.size
             return {
               name,
               path: relativePath,
@@ -98,7 +98,7 @@ const handlers = [
       const {owner, repo} = req.params
       const sha = decodeURIComponent(req.params.sha).trim()
       // NOTE: we cheat a bit and in the contents/:path handler, we set the sha to the relativePath
-      const relativePath = sha
+      const [relativePath] = sha.split('|')
 
       if (!relativePath) {
         throw new Error(`Unable to find the file for the sha ${sha}`)
