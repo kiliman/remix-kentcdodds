@@ -6,6 +6,7 @@ function IndexRoute() {
   return (
     <div>
       INDEX
+      <Link to="/blog">Blog</Link>
       <Link to="/contact">Contact Kent</Link>
       <Outlet />
     </div>
