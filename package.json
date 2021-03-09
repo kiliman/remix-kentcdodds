@@ -19,6 +19,7 @@
   "homepage": "https://github.com/kentcdodds/remix-kentcdodds.com#readme",
   "scripts": {
     "build": "remix build",
+    "clean": "rm -rf ./build ./public/build",
     "dev": "pm2-dev pm2.config.js",
     "start": "node start.js",
     "start:mocks": "ts-node -r ./mocks start.js",
