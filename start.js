@@ -1,4 +1,5 @@
 require('dotenv').config()
+const fs = require('fs')
 const path = require('path')
 const express = require('express')
 require('express-async-errors')
@@ -8,6 +9,11 @@ const {Octokit} = require('@octokit/rest')
 const octokit = new Octokit({
   auth: process.env.BOT_GITHUB_TOKEN,
 })
+
+// initialize .cache folder
+if (!fs.existsSync(process.env.CACHE_DIR)) {
+  fs.mkdirSync(process.env.CACHE_DIR)
+}
 
 const app = express()
 
