@@ -1,3 +1,4 @@
+import fs from 'fs'
 import sortBy from 'sort-by'
 import matter from 'gray-matter'
 import type {Octokit} from '@octokit/rest'
@@ -5,10 +6,22 @@ import type {Post, PostListing, PostFile, PostIndexFile} from 'types'
 import {compilePost} from './compile-mdx.server'
 
 async function getPost(slug: string, octokit: Octokit): Promise<Post> {
+  let sha = await getSha(octokit, `content/blog/${slug}`)
+  // mock appends 'sha' (actually mtimeMs) after path
+  if (sha.includes('|')) sha = sha.split('|')[1] as string
+
+  const cacheFile = `${process.env.CACHE_DIR}/${slug}-${sha}.json`
+  if (fs.existsSync(cacheFile)) {
+    return JSON.parse(fs.readFileSync(cacheFile, 'utf8'))
+  }
+
   const postFiles = await downloadDirectory(octokit, `content/blog/${slug}`)
 
   const {code, frontmatter} = await compilePost(slug, postFiles)
-  return {slug, code, frontmatter: frontmatter as Post['frontmatter']}
+  const result = {slug, code, frontmatter: frontmatter as Post['frontmatter']}
+
+  fs.writeFileSync(cacheFile, JSON.stringify(result))
+  return result
 }
 
 function typedBoolean<T>(
@@ -63,6 +76,21 @@ async function getPosts(octokit: Octokit): Promise<Array<PostListing>> {
 
   return posts.sort(sortBy('-frontmatter.published'))
 }
+
+// function to get SHA for slug
+// unfortunately it's not optimal since there is no GitHub API
+// to get SHA for a specfic folder, so need to `getContent` from
+// parent folder then filter by path
+async function getSha(octokit: Octokit, dir: string): Promise<string> {
+  const {data} = await octokit.repos.getContent({
+    owner: process.env.BLOG_GITHUB_OWNER as string,
+    repo: process.env.BLOG_GITHUB_REPO as string,
+    path: process.env.BLOG_GITHUB_PATH as string,
+  })
+  if (!Array.isArray(data)) throw new Error('Wut github?')
+  return data.find(entry => entry.path === dir)?.sha ?? ''
+}
+
 async function downloadDirectory(
   octokit: Octokit,
   dir: string,
