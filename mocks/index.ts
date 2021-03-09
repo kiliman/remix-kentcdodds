@@ -31,6 +31,25 @@ type GHContent = {
   encoding: 'base64'
 }
 
+async function calcMtime(
+  fullPath: string,
+  maxMtime: number = 0,
+): Promise<number> {
+  const stat = await fs.stat(fullPath)
+  if (stat.isDirectory()) {
+    const entries = await fs.readdir(fullPath)
+    let max = maxMtime
+    for (let i = 0; i < entries.length; i++) {
+      const path = entries[i]
+      // eslint-disable-next-line no-await-in-loop
+      max = await calcMtime(`${fullPath}/${path}`, max)
+    }
+    return max
+  } else {
+    return Math.max(maxMtime, stat.mtimeMs)
+  }
+}
+
 const handlers = [
   rest.get(
     `https://api.github.com/repos/:owner/:repo/contents/:path`,
